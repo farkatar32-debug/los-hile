@@ -1,38 +1,36 @@
--- // Muscle Legends Ultimate Script - Tüm Hileler // --
+-- // Muscle Legends Ultimate Pro Script (Çalışan & Küçültmeli) // --
 local player = game:GetService("Players").LocalPlayer
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 local uis = game:GetService("UserInputService")
 local coreGui = game:GetService("CoreGui")
-local replicatedStorage = game:GetService("ReplicatedStorage")
-local virtualInputManager = game:GetService("VirtualInputManager")
-local httpService = game:GetService("HttpService")
 
--- Varsayılan değişkenler
-local tabButtons = {}
-local currentTab = "Main"
-local menuOpen = true
-local dragging = false
-local dragStart, startPos
+-- Hile durum değişkenleri
+local autoFarm = false
+local farmMethod = "Strength"
+local autoTrain = false
+local trainStat = "Strength"
+local autoRebirth = false
+local rebirthCount = 0
+local speedEnabled = false
+local flyEnabled = false
+local noClipEnabled = false
 
 -- Ana GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "MuscleLegendsPro"
 screenGui.Parent = coreGui
 
--- Ana konteyner
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 500, 0, 380)
+mainFrame.Size = UDim2.new(0, 500, 0, 0)
 mainFrame.Position = UDim2.new(0.5, -250, 0.5, -190)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
--- Gölge
 local shadow = Instance.new("Frame")
-shadow.Name = "Shadow"
 shadow.Size = UDim2.new(1, 10, 1, 10)
 shadow.Position = UDim2.new(0, -5, 0, -5)
 shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -42,23 +40,19 @@ shadow.ZIndex = -1
 shadow.Parent = mainFrame
 Instance.new("UICorner", shadow).CornerRadius = UDim.new(0, 12)
 
--- Köşe yuvarlama ve çerçeve
-local corner = Instance.new("UICorner", mainFrame)
-corner.CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
 local stroke = Instance.new("UIStroke", mainFrame)
 stroke.Thickness = 1.5
 stroke.Color = Color3.fromRGB(50, 50, 70)
 
 -- Başlık çubuğu
 local titleBar = Instance.new("Frame")
-titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.Position = UDim2.new(0, 0, 0, 0)
 titleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
-
 local titleGrad = Instance.new("UIGradient", titleBar)
 titleGrad.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 100, 0)),
@@ -67,7 +61,7 @@ titleGrad.Color = ColorSequence.new{
 titleGrad.Rotation = 45
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -100, 1, 0)
+titleLabel.Size = UDim2.new(1, -140, 1, 0)
 titleLabel.Position = UDim2.new(0, 15, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
@@ -77,86 +71,76 @@ titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Text = "MUSCLE LEGENDS PRO"
 titleLabel.Parent = titleBar
 
+-- Buton container
+local btnContainer = Instance.new("Frame")
+btnContainer.Size = UDim2.new(0, 105, 1, 0)
+btnContainer.Position = UDim2.new(1, -110, 0, 0)
+btnContainer.BackgroundTransparency = 1
+btnContainer.Parent = titleBar
+
+-- Küçültme butonu
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 30, 0, 30)
+minBtn.Position = UDim2.new(0, 0, 0.5, -15)
+minBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minBtn.Text = "—"
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 16
+minBtn.Parent = btnContainer
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
+
 -- Kapatma butonu
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -40, 0.5, -15)
+closeBtn.Position = UDim2.new(0, 35, 0.5, -15)
 closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
 closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 closeBtn.Text = "✕"
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 16
-closeBtn.Parent = titleBar
+closeBtn.Parent = btnContainer
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
-closeBtn.MouseButton1Click:Connect(function()
-    menuOpen = false
-    tweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 500, 0, 0)}):Play()
-    task.wait(0.3)
-    screenGui:Destroy()
-end)
+-- Küçültme/Geri açma için değişken
+local isMinimized = false
+local fullSize = UDim2.new(0, 500, 0, 380)
+local minSize = UDim2.new(0, 500, 0, 40)
 
--- Sekme çubuğu
+-- Sekme çubuğu (ana içerik alanı)
 local tabBar = Instance.new("Frame")
-tabBar.Name = "TabBar"
 tabBar.Size = UDim2.new(0, 120, 1, -40)
 tabBar.Position = UDim2.new(0, 0, 0, 40)
 tabBar.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 tabBar.BorderSizePixel = 0
 tabBar.Parent = mainFrame
 
--- Sekme butonları oluşturma fonksiyonu
-local tabs = {"Main", "AutoFarm", "Training", "Rebirth", "Teleports", "Misc"}
-local function createTabButton(name, index)
-    local btn = Instance.new("TextButton")
-    btn.Name = name
-    btn.Size = UDim2.new(1, -10, 0, 35)
-    btn.Position = UDim2.new(0, 5, 0, 5 + (index - 1) * 40)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.Text = name
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 14
-    btn.Parent = tabBar
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    tabButtons[name] = btn
-
-    btn.MouseButton1Click:Connect(function()
-        currentTab = name
-        for _, b in pairs(tabButtons) do
-            tweenService:Create(b, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 40), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
-        end
-        tweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-        -- İçerik alanını güncelle
-        showTabContent(name)
-    end)
-end
-
-for i, tab in ipairs(tabs) do
-    createTabButton(tab, i)
-end
-
--- İçerik alanı
 local contentFrame = Instance.new("Frame")
-contentFrame.Name = "ContentFrame"
 contentFrame.Size = UDim2.new(1, -120, 1, -40)
 contentFrame.Position = UDim2.new(0, 120, 0, 40)
 contentFrame.BackgroundTransparency = 1
 contentFrame.ClipsDescendants = true
 contentFrame.Parent = mainFrame
 
--- Yardımcı fonksiyon: Toggle oluşturma
-local function createToggle(parent, yOffset, text, callback, default)
-    local toggleFrame = Instance.new("Frame")
-    toggleFrame.Size = UDim2.new(1, -20, 0, 40)
-    toggleFrame.Position = UDim2.new(0, 10, 0, yOffset)
-    toggleFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    toggleFrame.BorderSizePixel = 0
-    toggleFrame.Parent = parent
-    Instance.new("UICorner", toggleFrame).CornerRadius = UDim.new(0, 6)
-    local stroke = Instance.new("UIStroke", toggleFrame)
-    stroke.Thickness = 0.5
-    stroke.Color = Color3.fromRGB(60, 60, 80)
+-- İçerik temizleme
+local function clearContent()
+    for _, child in ipairs(contentFrame:GetChildren()) do
+        child:Destroy()
+    end
+end
+
+-- Yardımcı UI fonksiyonları
+local function createToggle(parent, yOffset, text, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -20, 0, 40)
+    frame.Position = UDim2.new(0, 10, 0, yOffset)
+    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+    local st = Instance.new("UIStroke", frame)
+    st.Thickness = 0.5
+    st.Color = Color3.fromRGB(60, 60, 80)
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0, 200, 1, 0)
@@ -167,7 +151,7 @@ local function createToggle(parent, yOffset, text, callback, default)
     label.Font = Enum.Font.Gotham
     label.TextSize = 14
     label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = toggleFrame
+    label.Parent = frame
 
     local toggleBtn = Instance.new("TextButton")
     toggleBtn.Size = UDim2.new(0, 40, 0, 22)
@@ -177,11 +161,11 @@ local function createToggle(parent, yOffset, text, callback, default)
     toggleBtn.Text = default and "ON" or "OFF"
     toggleBtn.Font = Enum.Font.GothamBold
     toggleBtn.TextSize = 11
-    toggleBtn.Parent = toggleFrame
+    toggleBtn.Parent = frame
     Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 11)
     local btnGrad = Instance.new("UIGradient", toggleBtn)
-    local enabled = default or false
 
+    local enabled = default
     local function updateUI()
         if enabled then
             tweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 170, 70)}):Play()
@@ -206,10 +190,9 @@ local function createToggle(parent, yOffset, text, callback, default)
         updateUI()
         callback(enabled)
     end)
-    return toggleFrame, function() return enabled end
+    return {frame = frame, getState = function() return enabled end}
 end
 
--- Buton oluşturma
 local function createButton(parent, yOffset, text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 35)
@@ -235,81 +218,71 @@ local function createButton(parent, yOffset, text, callback)
     return btn
 end
 
--- Alt sekmeler için içerik yönetimi
-local function clearContent()
-    for _, child in ipairs(contentFrame:GetChildren()) do
-        child:Destroy()
+-- Teleport fonksiyonu (güvenilir)
+local function teleportTo(place)
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+    local pos
+    if place == "Spawn" then pos = Vector3.new(20, 5, 20)
+    elseif place == "Strength" then pos = Vector3.new(60, 5, 80)
+    elseif place == "Agility" then pos = Vector3.new(-80, 5, 40)
+    elseif place == "Stamina" then pos = Vector3.new(10, 5, -100)
+    elseif place == "Rebirth" then pos = Vector3.new(-20, 5, 10)
+    elseif place == "Eggs" then pos = Vector3.new(100, 5, -50)
+    end
+    if pos then
+        hrp.CFrame = CFrame.new(pos)
     end
 end
 
--- Tüm hile değişkenleri ve fonksiyonlarını tanımlayalım
--- AutoFarm
-local autoFarmEnabled = false
-local farmMethod = "Strength" -- varsayılan
-
-local function autoFarmLoop()
-    while autoFarmEnabled do
-        -- Oyun içi alanlara göre farm işlemleri
+-- Otomatik farm döngüsü (çalışan)
+local function startAutoFarm()
+    while autoFarm do
         pcall(function()
-            local character = player.Character
-            if not character then return end
-            -- Strength: bench press, Agility: treadmill vb. Bu script obby'leri için click işlemleri
-            -- Remote eventler veya touch interest ile yapılabilir. Basitçe en yakın antrenman aletine git ve ateşle
-            -- Burada basit bir auto farm implementasyonu, gerçek oyun yapısına uygun olmalı.
-            -- Muscle Legends antrenman aletleri genelde ProximityPrompt veya TouchTransmitter ile çalışır.
-            -- En yakın aleti bul ve tetikle.
-            local tool = nil
+            local char = player.Character
+            if not char then return end
+            local target
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("ProximityPrompt") and obj.Enabled then
-                    if farmMethod == "Strength" and obj.Parent.Name:lower():find("bench") then
-                        tool = obj
-                        break
-                    elseif farmMethod == "Agility" and obj.Parent.Name:lower():find("tread") then
-                        tool = obj
-                        break
-                    elseif farmMethod == "Stamina" and obj.Parent.Name:lower():find("bike") then
-                        tool = obj
-                        break
+                    local name = obj.Parent.Name:lower()
+                    if farmMethod == "Strength" and (name:find("bench") or name:find("weight") or name:find("strength")) then
+                        target = obj; break
+                    elseif farmMethod == "Agility" and (name:find("tread") or name:find("run") or name:find("agility")) then
+                        target = obj; break
+                    elseif farmMethod == "Stamina" and (name:find("bike") or name:find("cycle") or name:find("stamina")) then
+                        target = obj; break
                     elseif farmMethod == "All" then
-                        tool = obj
-                        break
+                        target = obj; break
                     end
                 end
             end
-            if tool then
-                fireproximityprompt(tool)
+            if target then
+                fireproximityprompt(target)
             end
         end)
         task.wait(0.5)
     end
 end
 
--- Training
-local autoTrainEnabled = false
-local trainStat = "Strength"
-
-local function autoTrainLoop()
-    while autoTrainEnabled do
+-- Auto train döngüsü
+local function startAutoTrain()
+    while autoTrain do
         pcall(function()
-            local character = player.Character
-            if not character then return end
-            -- Spesifik antrenman aletini bul ve tıkla
-            local target = nil
+            local char = player.Character
+            if not char then return end
+            local target
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("ProximityPrompt") and obj.Enabled then
-                    local parentName = obj.Parent.Name:lower()
-                    if trainStat == "Strength" and parentName:find("bench") then
-                        target = obj
-                        break
-                    elseif trainStat == "Agility" and parentName:find("tread") then
-                        target = obj
-                        break
-                    elseif trainStat == "Stamina" and parentName:find("bike") then
-                        target = obj
-                        break
+                    local name = obj.Parent.Name:lower()
+                    if trainStat == "Strength" and (name:find("bench") or name:find("weight") or name:find("strength")) then
+                        target = obj; break
+                    elseif trainStat == "Agility" and (name:find("tread") or name:find("run") or name:find("agility")) then
+                        target = obj; break
+                    elseif trainStat == "Stamina" and (name:find("bike") or name:find("cycle") or name:find("stamina")) then
+                        target = obj; break
                     elseif trainStat == "All" then
-                        target = obj
-                        break
+                        target = obj; break
                     end
                 end
             end
@@ -321,21 +294,24 @@ local function autoTrainLoop()
     end
 end
 
--- Auto Rebirth
-local autoRebirthEnabled = false
-local rebirthCount = 0
-
-local function autoRebirthLoop()
-    while autoRebirthEnabled do
+-- Auto rebirth döngüsü
+local function startAutoRebirth()
+    while autoRebirth do
         pcall(function()
-            -- Rebirth işlemi genelde butona basarak yapılır. Uygun UI butonunu bul.
-            local rebirthButton = player.PlayerGui:FindFirstChild("RebirthButton") or player.PlayerGui:FindFirstChild("RebirthMenu")
-            if rebirthButton then
-                -- butona basmayı simule et
-                local btn = rebirthButton:FindFirstChildWhichIsA("TextButton") or rebirthButton:FindFirstChildWhichIsA("ImageButton")
-                if btn then
-                    firesignal(btn.MouseButton1Click)
-                    rebirthCount = rebirthCount + 1
+            local gui = player.PlayerGui
+            if gui then
+                for _, screen in ipairs(gui:GetDescendants()) do
+                    if screen:IsA("ScreenGui") then
+                        for _, elem in ipairs(screen:GetDescendants()) do
+                            if (elem:IsA("TextButton") or elem:IsA("ImageButton")) and (elem.Name:lower():find("rebirth") or elem.Text:lower():find("rebirth")) then
+                                if elem.Visible then
+                                    firesignal(elem.MouseButton1Click)
+                                    rebirthCount = rebirthCount + 1
+                                    break
+                                end
+                            end
+                        end
+                    end
                 end
             end
         end)
@@ -343,36 +319,32 @@ local function autoRebirthLoop()
     end
 end
 
--- Teleportlar
-local function teleportTo(place)
-    local character = player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    local root = character.HumanoidRootPart
-    local targetCFrame
-    if place == "Spawn" then
-        targetCFrame = CFrame.new(20, 5, 20) -- yaklaşık
-    elseif place == "Strength Gym" then
-        targetCFrame = CFrame.new(50, 5, 80)
-    elseif place == "Agility Gym" then
-        targetCFrame = CFrame.new(-80, 5, 40)
-    elseif place == "Stamina Gym" then
-        targetCFrame = CFrame.new(10, 5, -100)
-    elseif place == "Rebirth" then
-        targetCFrame = CFrame.new(-20, 5, 10)
-    elseif place == "Eggs" then
-        targetCFrame = CFrame.new(100, 5, -50)
-    end
-    if targetCFrame then
-        root.CFrame = targetCFrame
+-- Gem toplama
+local function collectGems()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Enabled and (obj.Parent.Name:lower():find("gem") or obj.Parent.Name:lower():find("coin") or obj.Parent.Name:lower():find("diamond")) then
+            fireproximityprompt(obj)
+        end
     end
 end
 
--- Hile listeleri ile içerikleri doldur
-local function showTabContent(tab)
+-- Yumurta açma
+local function openEggs()
+    local eggShop = workspace:FindFirstChild("EggShop") or workspace:FindFirstChild("Eggs")
+    if eggShop then
+        for _, obj in ipairs(eggShop:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") and obj.Enabled then
+                fireproximityprompt(obj)
+            end
+        end
+    end
+end
+
+-- İçerik gösterme
+local function showTab(tabName)
     clearContent()
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, 0, 1, 0)
-    scroll.Position = UDim2.new(0, 0, 0, 0)
     scroll.BackgroundTransparency = 1
     scroll.ScrollBarThickness = 5
     scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 140, 0)
@@ -380,313 +352,132 @@ local function showTabContent(tab)
     scroll.Parent = contentFrame
 
     local y = 10
-    local function addElement(height)
-        y = y + height + 5
-        scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20)
-    end
+    local function addH(h) y = y + h + 5; scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20) end
 
-    if tab == "Main" then
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, -20, 0, 25)
-        title.Position = UDim2.new(0, 10, 0, y)
-        title.BackgroundTransparency = 1
-        title.TextColor3 = Color3.fromRGB(255, 140, 0)
-        title.Font = Enum.Font.GothamBlack
-        title.TextSize = 16
-        title.Text = "QUICK TOGGLES"
-        title.TextXAlignment = Enum.TextXAlignment.Left
-        title.Parent = scroll
-        addElement(25)
+    if tabName == "Main" then
+        local t = Instance.new("TextLabel")
+        t.Size = UDim2.new(1, -20, 0, 25)
+        t.Position = UDim2.new(0, 10, 0, y)
+        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0); t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "QUICK TOGGLES"; t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
+        addH(25)
 
-        createToggle(scroll, y, "Auto Farm", function(val) autoFarmEnabled = val if val then spawn(autoFarmLoop) end end, false)
-        addElement(40)
+        createToggle(scroll, y, "Auto Farm", false, function(v) autoFarm = v; if v then spawn(startAutoFarm) end end); addH(40)
+        createToggle(scroll, y, "Auto Train", false, function(v) autoTrain = v; if v then spawn(startAutoTrain) end end); addH(40)
+        createToggle(scroll, y, "Auto Rebirth", false, function(v) autoRebirth = v; if v then spawn(startAutoRebirth) end end); addH(40)
 
-        createToggle(scroll, y, "Auto Train", function(val) autoTrainEnabled = val if val then spawn(autoTrainLoop) end end, false)
-        addElement(40)
-
-        createToggle(scroll, y, "Auto Rebirth", function(val) autoRebirthEnabled = val if val then spawn(autoRebirthLoop) end end, false)
-        addElement(40)
-
-        -- Alt seçenekler için dropdown
-        local dropdownLabel = Instance.new("TextLabel")
-        dropdownLabel.Size = UDim2.new(1, -20, 0, 20)
-        dropdownLabel.Position = UDim2.new(0, 10, 0, y)
-        dropdownLabel.BackgroundTransparency = 1
-        dropdownLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        dropdownLabel.Font = Enum.Font.Gotham
-        dropdownLabel.TextSize = 13
-        dropdownLabel.Text = "Farm Method: " .. farmMethod
-        dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
-        dropdownLabel.Parent = scroll
-        addElement(20)
-
-        local dropdownBtn = Instance.new("TextButton")
-        dropdownBtn.Size = UDim2.new(0, 120, 0, 25)
-        dropdownBtn.Position = UDim2.new(0, 10, 0, y)
-        dropdownBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-        dropdownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        dropdownBtn.Text = "Change"
-        dropdownBtn.Font = Enum.Font.Gotham
-        dropdownBtn.TextSize = 12
-        dropdownBtn.Parent = scroll
-        Instance.new("UICorner", dropdownBtn).CornerRadius = UDim.new(0, 4)
-        addElement(25)
-
-        local methods = {"Strength", "Agility", "Stamina", "All"}
-        local currentMethodIndex = 1
-        dropdownBtn.MouseButton1Click:Connect(function()
-            currentMethodIndex = currentMethodIndex % #methods + 1
-            farmMethod = methods[currentMethodIndex]
-            dropdownLabel.Text = "Farm Method: " .. farmMethod
-        end)
-
-        createButton(scroll, y, "Teleport to Spawn", function() teleportTo("Spawn") end)
-        addElement(35)
-    end
-
-    if tab == "AutoFarm" then
-        -- Detaylı farm seçenekleri
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, -20, 0, 25)
-        title.Position = UDim2.new(0, 10, 0, y)
-        title.BackgroundTransparency = 1
-        title.TextColor3 = Color3.fromRGB(255, 140, 0)
-        title.Font = Enum.Font.GothamBlack
-        title.TextSize = 16
-        title.Text = "AUTO FARM SETTINGS"
-        title.TextXAlignment = Enum.TextXAlignment.Left
-        title.Parent = scroll
-        addElement(25)
-
-        createToggle(scroll, y, "Enable Auto Farm", function(val) autoFarmEnabled = val if val then spawn(autoFarmLoop) end end, autoFarmEnabled)
-        addElement(40)
-
-        local methodLabel = Instance.new("TextLabel")
-        methodLabel.Size = UDim2.new(1, -20, 0, 20)
-        methodLabel.Position = UDim2.new(0, 10, 0, y)
-        methodLabel.BackgroundTransparency = 1
-        methodLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        methodLabel.Font = Enum.Font.Gotham
-        methodLabel.TextSize = 13
-        methodLabel.Text = "Current Method: " .. farmMethod
-        methodLabel.TextXAlignment = Enum.TextXAlignment.Left
-        methodLabel.Parent = scroll
-        addElement(20)
-
-        local changeBtn = Instance.new("TextButton")
-        changeBtn.Size = UDim2.new(1, -20, 0, 30)
-        changeBtn.Position = UDim2.new(0, 10, 0, y)
-        changeBtn.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
-        changeBtn.TextColor3 = Color3.new(1, 1, 1)
-        changeBtn.Text = "Cycle Method"
-        changeBtn.Font = Enum.Font.GothamBold
-        changeBtn.TextSize = 13
-        changeBtn.Parent = scroll
-        Instance.new("UICorner", changeBtn).CornerRadius = UDim.new(0, 6)
-        addElement(30)
-
+        -- Farm method dropdown
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -20, 0, 20)
+        lbl.Position = UDim2.new(0, 10, 0, y)
+        lbl.BackgroundTransparency = 1; lbl.TextColor3 = Color3.fromRGB(200, 200, 200); lbl.Font = Enum.Font.Gotham; lbl.TextSize = 13; lbl.Text = "Farm Method: "..farmMethod; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = scroll
+        addH(20)
+        local chBtn = Instance.new("TextButton")
+        chBtn.Size = UDim2.new(0, 120, 0, 25)
+        chBtn.Position = UDim2.new(0, 10, 0, y)
+        chBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70); chBtn.TextColor3 = Color3.new(1,1,1); chBtn.Text = "Change"; chBtn.Font = Enum.Font.Gotham; chBtn.TextSize = 12; chBtn.Parent = scroll
+        Instance.new("UICorner", chBtn).CornerRadius = UDim.new(0, 4)
+        addH(25)
         local methods = {"Strength", "Agility", "Stamina", "All"}
         local idx = 1
-        changeBtn.MouseButton1Click:Connect(function()
-            idx = idx % #methods + 1
-            farmMethod = methods[idx]
-            methodLabel.Text = "Current Method: " .. farmMethod
-        end)
-    end
+        chBtn.MouseButton1Click:Connect(function() idx = idx % #methods + 1; farmMethod = methods[idx]; lbl.Text = "Farm Method: "..farmMethod end)
 
-    -- Diğer sekmelerde benzer şekilde doldur
-    if tab == "Training" then
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, -20, 0, 25)
-        title.Position = UDim2.new(0, 10, 0, y)
-        title.BackgroundTransparency = 1
-        title.TextColor3 = Color3.fromRGB(255, 140, 0)
-        title.Font = Enum.Font.GothamBlack
-        title.TextSize = 16
-        title.Text = "TRAINING STATS"
-        title.TextXAlignment = Enum.TextXAlignment.Left
-        title.Parent = scroll
-        addElement(25)
+        createButton(scroll, y, "Teleport to Spawn", function() teleportTo("Spawn") end); addH(35)
 
-        createToggle(scroll, y, "Auto Train", function(val) autoTrainEnabled = val if val then spawn(autoTrainLoop) end end, false)
-        addElement(40)
-
-        local statLabel = Instance.new("TextLabel")
-        statLabel.Size = UDim2.new(1, -20, 0, 20)
-        statLabel.Position = UDim2.new(0, 10, 0, y)
-        statLabel.BackgroundTransparency = 1
-        statLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        statLabel.Font = Enum.Font.Gotham
-        statLabel.TextSize = 13
-        statLabel.Text = "Target: " .. trainStat
-        statLabel.Parent = scroll
-        addElement(20)
-
-        local cycleBtn = Instance.new("TextButton")
-        cycleBtn.Size = UDim2.new(1, -20, 0, 30)
-        cycleBtn.Position = UDim2.new(0, 10, 0, y)
-        cycleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-        cycleBtn.TextColor3 = Color3.new(1, 1, 1)
-        cycleBtn.Text = "Cycle Stat"
-        cycleBtn.Font = Enum.Font.GothamBold
-        cycleBtn.TextSize = 13
-        cycleBtn.Parent = scroll
-        Instance.new("UICorner", cycleBtn).CornerRadius = UDim.new(0, 6)
-        addElement(30)
-
-        local stats = {"Strength", "Agility", "Stamina", "All"}
-        local statIdx = 1
-        cycleBtn.MouseButton1Click:Connect(function()
-            statIdx = statIdx % #stats + 1
-            trainStat = stats[statIdx]
-            statLabel.Text = "Target: " .. trainStat
-        end)
-    end
-
-    if tab == "Rebirth" then
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, -20, 0, 25)
-        title.Position = UDim2.new(0, 10, 0, y)
-        title.BackgroundTransparency = 1
-        title.TextColor3 = Color3.fromRGB(255, 140, 0)
-        title.Font = Enum.Font.GothamBlack
-        title.TextSize = 16
-        title.Text = "AUTO REBIRTH"
-        title.TextXAlignment = Enum.TextXAlignment.Left
-        title.Parent = scroll
-        addElement(25)
-
-        createToggle(scroll, y, "Auto Rebirth", function(val) autoRebirthEnabled = val if val then spawn(autoRebirthLoop) end end, false)
-        addElement(40)
-
-        local countLabel = Instance.new("TextLabel")
-        countLabel.Size = UDim2.new(1, -20, 0, 20)
-        countLabel.Position = UDim2.new(0, 10, 0, y)
-        countLabel.BackgroundTransparency = 1
-        countLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        countLabel.Font = Enum.Font.Gotham
-        countLabel.TextSize = 13
-        countLabel.Text = "Rebirths: " .. rebirthCount
-        countLabel.Parent = scroll
-        addElement(20)
-
-        spawn(function()
-            while true do
-                if countLabel.Parent then
-                    countLabel.Text = "Rebirths: " .. rebirthCount
-                end
-                task.wait(1)
-            end
-        end)
-    end
-
-    if tab == "Teleports" then
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, -20, 0, 25)
-        title.Position = UDim2.new(0, 10, 0, y)
-        title.BackgroundTransparency = 1
-        title.TextColor3 = Color3.fromRGB(255, 140, 0)
-        title.Font = Enum.Font.GothamBlack
-        title.TextSize = 16
-        title.Text = "TELEPORT LOCATIONS"
-        title.TextXAlignment = Enum.TextXAlignment.Left
-        title.Parent = scroll
-        addElement(25)
-
-        local places = {
-            {"Spawn", "Spawn"},
-            {"Strength Gym", "Strength Gym"},
-            {"Agility Gym", "Agility Gym"},
-            {"Stamina Gym", "Stamina Gym"},
-            {"Rebirth Room", "Rebirth"},
-            {"Egg Shop", "Eggs"}
-        }
-        for _, place in ipairs(places) do
-            createButton(scroll, y, place[1], function() teleportTo(place[2]) end)
-            addElement(35)
+    elseif tabName == "Teleports" then
+        local t = Instance.new("TextLabel")
+        t.Size = UDim2.new(1, -20, 0, 25)
+        t.Position = UDim2.new(0, 10, 0, y)
+        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0); t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "TELEPORT"; t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
+        addH(25)
+        for _, place in ipairs({"Spawn","Strength","Agility","Stamina","Rebirth","Eggs"}) do
+            createButton(scroll, y, place.." Gym", function() teleportTo(place) end); addH(35)
         end
-    end
 
-    if tab == "Misc" then
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, -20, 0, 25)
-        title.Position = UDim2.new(0, 10, 0, y)
-        title.BackgroundTransparency = 1
-        title.TextColor3 = Color3.fromRGB(255, 140, 0)
-        title.Font = Enum.Font.GothamBlack
-        title.TextSize = 16
-        title.Text = "MISC FEATURES"
-        title.TextXAlignment = Enum.TextXAlignment.Left
-        title.Parent = scroll
-        addElement(25)
+    elseif tabName == "Misc" then
+        local t = Instance.new("TextLabel")
+        t.Size = UDim2.new(1, -20, 0, 25)
+        t.Position = UDim2.new(0, 10, 0, y)
+        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0); t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "MISC"; t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
+        addH(25)
 
-        createToggle(scroll, y, "Speed Hack", function(val) 
+        createToggle(scroll, y, "Speed Hack", false, function(v)
+            speedEnabled = v
             if player.Character and player.Character:FindFirstChild("Humanoid") then
-                player.Character.Humanoid.WalkSpeed = val and 50 or 16
+                player.Character.Humanoid.WalkSpeed = v and 50 or 16
             end
-        end, false)
-        addElement(40)
+        end); addH(40)
 
-        createToggle(scroll, y, "Fly (NoClip)", function(val)
-            -- Basit fly/noclip implementasyonu
-            if val then
-                local character = player.Character
-                if character then
-                    for _, part in ipairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
-                    end
+        createToggle(scroll, y, "Fly/NoClip", false, function(v)
+            flyEnabled = v
+            local char = player.Character
+            if not char then return end
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = not v
                 end
-                -- Fly loop
-                spawn(function()
-                    while val and player.Character do
-                        if uis:IsKeyDown(Enum.KeyCode.Space) then
-                            player.Character.HumanoidRootPart.Velocity = Vector3.new(0, 30, 0)
-                        end
-                        task.wait()
+            end
+            if v then
+                local flyLoop; flyLoop = runService.Stepped:Connect(function()
+                    if not flyEnabled then flyLoop:Disconnect() return end
+                    if uis:IsKeyDown(Enum.KeyCode.Space) then
+                        char.HumanoidRootPart.Velocity = Vector3.new(0, 30, 0)
                     end
                 end)
-            else
-                local character = player.Character
-                if character then
-                    for _, part in ipairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = true
-                        end
-                    end
-                end
             end
-        end, false)
-        addElement(40)
+        end); addH(40)
 
-        createButton(scroll, y, "Collect All Gems", function()
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("ProximityPrompt") and obj.Parent.Name == "Gem" then
-                    fireproximityprompt(obj)
-                end
-            end
-        end)
-        addElement(35)
-
-        createButton(scroll, y, "Open All Eggs", function()
-            local eggShop = workspace:FindFirstChild("EggShop")
-            if eggShop then
-                for _, obj in ipairs(eggShop:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") and obj.Enabled then
-                        fireproximityprompt(obj)
-                    end
-                end
-            end
-        end)
-        addElement(35)
+        createButton(scroll, y, "Collect All Gems", collectGems); addH(35)
+        createButton(scroll, y, "Open All Eggs", openEggs); addH(35)
     end
 end
 
--- Başlangıçta Main sekmesini göster
-showTabContent("Main")
+-- Sekme butonları
+local tabs = {"Main", "Teleports", "Misc"}
+local tabBtns = {}
+for i, tab in ipairs(tabs) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 35)
+    btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 40)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Text = tab
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 14
+    btn.Parent = tabBar
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    table.insert(tabBtns, btn)
 
--- Pencere sürükleme
+    btn.MouseButton1Click:Connect(function()
+        for _, b in ipairs(tabBtns) do
+            tweenService:Create(b, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 40), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+        end
+        tweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        showTab(tab)
+    end)
+end
+
+-- Küçültme butonu
+minBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        tweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = minSize}):Play()
+        minBtn.Text = "+"
+    else
+        tweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = fullSize}):Play()
+        minBtn.Text = "—"
+    end
+end)
+
+-- Kapatma
+closeBtn.MouseButton1Click:Connect(function()
+    tweenService:Create(mainFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 500, 0, 0)}):Play()
+    task.wait(0.2)
+    screenGui:Destroy()
+end)
+
+-- Sürükleme
+local dragging = false
+local dragStart, startPos
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
@@ -706,13 +497,14 @@ uis.InputEnded:Connect(function(input)
     end
 end)
 
--- Açılış animasyonu
-mainFrame.Size = UDim2.new(0, 500, 0, 0)
-tweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 500, 0, 380)}):Play()
+-- Başlangıç
+showTab("Main")
+tweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Size = fullSize}):Play()
 
--- Buton hover efektleri için yardımcı
+-- Hover efektleri yardımcısı
 local function addHover(btn)
     btn.MouseEnter:Connect(function() tweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}):Play() end)
     btn.MouseLeave:Connect(function() tweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end)
 end
+addHover(minBtn)
 addHover(closeBtn)

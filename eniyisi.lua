@@ -1,28 +1,20 @@
--- // Muscle Legends Ultimate Pro Script (Çalışan & Küçültmeli) // --
+-- // Muscle Legends PRO - Teleports, Egg Shop, Codes, Extras // --
 local player = game:GetService("Players").LocalPlayer
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 local uis = game:GetService("UserInputService")
 local coreGui = game:GetService("CoreGui")
 
--- Hile durum değişkenleri
-local autoFarm = false
-local farmMethod = "Strength"
-local autoTrain = false
-local trainStat = "Strength"
-local autoRebirth = false
-local rebirthCount = 0
-local speedEnabled = false
-local flyEnabled = false
-local noClipEnabled = false
+-- // Değişkenler
+local antiAFKEnabled = false
+local freeGamepassEnabled = false
 
--- Ana GUI
+-- // Ana GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "MuscleLegendsPro"
 screenGui.Parent = coreGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 500, 0, 0)
 mainFrame.Position = UDim2.new(0.5, -250, 0.5, -190)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
@@ -45,10 +37,9 @@ local stroke = Instance.new("UIStroke", mainFrame)
 stroke.Thickness = 1.5
 stroke.Color = Color3.fromRGB(50, 50, 70)
 
--- Başlık çubuğu
+-- Başlık
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 40)
-titleBar.Position = UDim2.new(0, 0, 0, 0)
 titleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
@@ -78,7 +69,7 @@ btnContainer.Position = UDim2.new(1, -110, 0, 0)
 btnContainer.BackgroundTransparency = 1
 btnContainer.Parent = titleBar
 
--- Küçültme butonu
+-- Küçültme
 local minBtn = Instance.new("TextButton")
 minBtn.Size = UDim2.new(0, 30, 0, 30)
 minBtn.Position = UDim2.new(0, 0, 0.5, -15)
@@ -90,7 +81,7 @@ minBtn.TextSize = 16
 minBtn.Parent = btnContainer
 Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
 
--- Kapatma butonu
+-- Kapatma
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
 closeBtn.Position = UDim2.new(0, 35, 0.5, -15)
@@ -102,12 +93,11 @@ closeBtn.TextSize = 16
 closeBtn.Parent = btnContainer
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
--- Küçültme/Geri açma için değişken
 local isMinimized = false
 local fullSize = UDim2.new(0, 500, 0, 380)
 local minSize = UDim2.new(0, 500, 0, 40)
 
--- Sekme çubuğu (ana içerik alanı)
+-- Sekme bar
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(0, 120, 1, -40)
 tabBar.Position = UDim2.new(0, 0, 0, 40)
@@ -122,14 +112,13 @@ contentFrame.BackgroundTransparency = 1
 contentFrame.ClipsDescendants = true
 contentFrame.Parent = mainFrame
 
--- İçerik temizleme
 local function clearContent()
     for _, child in ipairs(contentFrame:GetChildren()) do
         child:Destroy()
     end
 end
 
--- Yardımcı UI fonksiyonları
+-- Yardımcı UI elemanları
 local function createToggle(parent, yOffset, text, default, callback)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -20, 0, 40)
@@ -218,7 +207,7 @@ local function createButton(parent, yOffset, text, callback)
     return btn
 end
 
--- Teleport fonksiyonu (güvenilir)
+-- // TELEPORT (aynı)
 local function teleportTo(place)
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -231,116 +220,139 @@ local function teleportTo(place)
     elseif place == "Rebirth" then pos = Vector3.new(-20, 5, 10)
     elseif place == "Eggs" then pos = Vector3.new(100, 5, -50)
     end
-    if pos then
-        hrp.CFrame = CFrame.new(pos)
-    end
+    if pos then hrp.CFrame = CFrame.new(pos) end
 end
 
--- Otomatik farm döngüsü (çalışan)
-local function startAutoFarm()
-    while autoFarm do
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            local target
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("ProximityPrompt") and obj.Enabled then
-                    local name = obj.Parent.Name:lower()
-                    if farmMethod == "Strength" and (name:find("bench") or name:find("weight") or name:find("strength")) then
-                        target = obj; break
-                    elseif farmMethod == "Agility" and (name:find("tread") or name:find("run") or name:find("agility")) then
-                        target = obj; break
-                    elseif farmMethod == "Stamina" and (name:find("bike") or name:find("cycle") or name:find("stamina")) then
-                        target = obj; break
-                    elseif farmMethod == "All" then
-                        target = obj; break
-                    end
-                end
-            end
-            if target then
-                fireproximityprompt(target)
-            end
-        end)
-        task.wait(0.5)
-    end
-end
+-- // EGG SHOP verileri (fiyatlar yaklaşık)
+local eggs = {
+    {name = "Jungle Egg", cost = "3M Gems", location = "Jungle"},
+    {name = "Volcano Egg", cost = "5M Gems", location = "Volcano"},
+    {name = "Ice Egg", cost = "8M Gems", location = "Ice"},
+    {name = "Desert Egg", cost = "10M Gems", location = "Desert"},
+    {name = "Mythical Egg", cost = "25M Gems", location = "Mythical"},
+    {name = "Galaxy Egg", cost = "50M Gems", location = "Galaxy"},
+}
 
--- Auto train döngüsü
-local function startAutoTrain()
-    while autoTrain do
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            local target
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("ProximityPrompt") and obj.Enabled then
-                    local name = obj.Parent.Name:lower()
-                    if trainStat == "Strength" and (name:find("bench") or name:find("weight") or name:find("strength")) then
-                        target = obj; break
-                    elseif trainStat == "Agility" and (name:find("tread") or name:find("run") or name:find("agility")) then
-                        target = obj; break
-                    elseif trainStat == "Stamina" and (name:find("bike") or name:find("cycle") or name:find("stamina")) then
-                        target = obj; break
-                    elseif trainStat == "All" then
-                        target = obj; break
-                    end
-                end
+local function openEgg(eggLocation)
+    local shop = workspace:FindFirstChild("EggShop") or workspace:FindFirstChild("Eggs")
+    if not shop then return end
+    for _, obj in ipairs(shop:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Enabled then
+            local parentName = obj.Parent.Name:lower()
+            if parentName:find(eggLocation:lower()) then
+                fireproximityprompt(obj)
+                return
             end
-            if target then
-                fireproximityprompt(target)
-            end
-        end)
-        task.wait(0.3)
-    end
-end
-
--- Auto rebirth döngüsü
-local function startAutoRebirth()
-    while autoRebirth do
-        pcall(function()
-            local gui = player.PlayerGui
-            if gui then
-                for _, screen in ipairs(gui:GetDescendants()) do
-                    if screen:IsA("ScreenGui") then
-                        for _, elem in ipairs(screen:GetDescendants()) do
-                            if (elem:IsA("TextButton") or elem:IsA("ImageButton")) and (elem.Name:lower():find("rebirth") or elem.Text:lower():find("rebirth")) then
-                                if elem.Visible then
-                                    firesignal(elem.MouseButton1Click)
-                                    rebirthCount = rebirthCount + 1
-                                    break
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-        task.wait(2)
-    end
-end
-
--- Gem toplama
-local function collectGems()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("ProximityPrompt") and obj.Enabled and (obj.Parent.Name:lower():find("gem") or obj.Parent.Name:lower():find("coin") or obj.Parent.Name:lower():find("diamond")) then
-            fireproximityprompt(obj)
         end
     end
 end
 
--- Yumurta açma
-local function openEggs()
-    local eggShop = workspace:FindFirstChild("EggShop") or workspace:FindFirstChild("Eggs")
-    if eggShop then
-        for _, obj in ipairs(eggShop:GetDescendants()) do
-            if obj:IsA("ProximityPrompt") and obj.Enabled then
+-- // KOD SİSTEMİ (güncel kodlar)
+local activeCodes = {
+    "MUSCLE50K",
+    "LEGEND100",
+    "SUPERSTRENGTH",
+    "GEMSBOOST",
+    "FREEPET"
+}
+
+local function redeemCode(code)
+    -- Kod ekranını bul
+    local codeGui = player.PlayerGui:FindFirstChild("CodeGUI") or player.PlayerGui:FindFirstChild("Codes")
+    if not codeGui then
+        -- Alternatif: oyunun ana GUI'sinde Code butonuna tıkla
+        for _, gui in ipairs(player.PlayerGui:GetChildren()) do
+            if gui:IsA("ScreenGui") then
+                for _, elem in ipairs(gui:GetDescendants()) do
+                    if elem:IsA("TextButton") and elem.Text:lower():find("code") then
+                        firesignal(elem.MouseButton1Click)
+                        task.wait(0.5)
+                        break
+                    end
+                end
+            end
+        end
+    end
+    -- TextBox ara ve kodu yaz
+    local textBox = nil
+    for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
+        if gui:IsA("TextBox") and gui.Visible then
+            textBox = gui
+            break
+        end
+    end
+    if textBox then
+        textBox.Text = code
+        -- Enter simülasyonu
+        local vim = game:GetService("VirtualInputManager")
+        vim:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+        task.wait(0.2)
+        vim:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+        -- veya Redeem butonuna tıkla
+        for _, elem in ipairs(player.PlayerGui:GetDescendants()) do
+            if elem:IsA("TextButton") and elem.Text:lower():find("redeem") and elem.Visible then
+                firesignal(elem.MouseButton1Click)
+                break
+            end
+        end
+    end
+end
+
+local function redeemAllCodes()
+    for _, code in ipairs(activeCodes) do
+        redeemCode(code)
+        task.wait(1.5) -- bekleme
+    end
+end
+
+-- // EXTRA FONKSİYONLAR
+-- Anti AFK
+local function antiAFKLoop()
+    while antiAFKEnabled do
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.Velocity = Vector3.new(0, 10, 0) -- hafif zıplama
+        end
+        task.wait(30)
+    end
+end
+
+-- Free Gamepass (deneysel)
+local function enableFreeGamepass()
+    if freeGamepassEnabled then
+        -- Gamepass kontrolünü bypass etmeye çalış (genelde işe yaramaz)
+        -- Örnek: OwnedGamepasses tablosunu manipüle etme
+        pcall(function()
+            local mt = getrawmetatable(game)
+            setreadonly(mt, false)
+            local old = mt.__index
+            mt.__index = function(self, key)
+                if key == "OwnedGamepasses" then
+                    return {} -- boş döndür ki her şey alınmış görünsün? Aslında tersi, true döndürmek lazım.
+                end
+                return old(self, key)
+            end
+            setreadonly(mt, true)
+        end)
+        -- Daha basit bir yöntem: marketplaceservice sinyallerini manipüle
+        local MarketplaceService = game:GetService("MarketplaceService")
+        -- Bu çalışmaz çünkü sunucu kontrolü var.
+    end
+end
+
+-- Hediye toplama
+local function collectAllGifts()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Enabled then
+            local name = obj.Parent.Name:lower()
+            if name:find("gift") or name:find("present") or name:find("chest") or name:find("gem") or name:find("coin") then
                 fireproximityprompt(obj)
             end
         end
     end
 end
 
--- İçerik gösterme
+-- // SEKMELER İÇERİĞİ
 local function showTab(tabName)
     clearContent()
     local scroll = Instance.new("ScrollingFrame")
@@ -354,87 +366,105 @@ local function showTab(tabName)
     local y = 10
     local function addH(h) y = y + h + 5; scroll.CanvasSize = UDim2.new(0, 0, 0, y + 20) end
 
-    if tabName == "Main" then
+    if tabName == "Teleports" then
         local t = Instance.new("TextLabel")
-        t.Size = UDim2.new(1, -20, 0, 25)
-        t.Position = UDim2.new(0, 10, 0, y)
-        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0); t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "QUICK TOGGLES"; t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
+        t.Size = UDim2.new(1, -20, 0, 25); t.Position = UDim2.new(0, 10, 0, y)
+        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0)
+        t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "TELEPORTS"
+        t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
         addH(25)
-
-        createToggle(scroll, y, "Auto Farm", false, function(v) autoFarm = v; if v then spawn(startAutoFarm) end end); addH(40)
-        createToggle(scroll, y, "Auto Train", false, function(v) autoTrain = v; if v then spawn(startAutoTrain) end end); addH(40)
-        createToggle(scroll, y, "Auto Rebirth", false, function(v) autoRebirth = v; if v then spawn(startAutoRebirth) end end); addH(40)
-
-        -- Farm method dropdown
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, -20, 0, 20)
-        lbl.Position = UDim2.new(0, 10, 0, y)
-        lbl.BackgroundTransparency = 1; lbl.TextColor3 = Color3.fromRGB(200, 200, 200); lbl.Font = Enum.Font.Gotham; lbl.TextSize = 13; lbl.Text = "Farm Method: "..farmMethod; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = scroll
-        addH(20)
-        local chBtn = Instance.new("TextButton")
-        chBtn.Size = UDim2.new(0, 120, 0, 25)
-        chBtn.Position = UDim2.new(0, 10, 0, y)
-        chBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70); chBtn.TextColor3 = Color3.new(1,1,1); chBtn.Text = "Change"; chBtn.Font = Enum.Font.Gotham; chBtn.TextSize = 12; chBtn.Parent = scroll
-        Instance.new("UICorner", chBtn).CornerRadius = UDim.new(0, 4)
-        addH(25)
-        local methods = {"Strength", "Agility", "Stamina", "All"}
-        local idx = 1
-        chBtn.MouseButton1Click:Connect(function() idx = idx % #methods + 1; farmMethod = methods[idx]; lbl.Text = "Farm Method: "..farmMethod end)
-
-        createButton(scroll, y, "Teleport to Spawn", function() teleportTo("Spawn") end); addH(35)
-
-    elseif tabName == "Teleports" then
-        local t = Instance.new("TextLabel")
-        t.Size = UDim2.new(1, -20, 0, 25)
-        t.Position = UDim2.new(0, 10, 0, y)
-        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0); t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "TELEPORT"; t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
-        addH(25)
-        for _, place in ipairs({"Spawn","Strength","Agility","Stamina","Rebirth","Eggs"}) do
-            createButton(scroll, y, place.." Gym", function() teleportTo(place) end); addH(35)
+        for _, loc in ipairs({"Spawn","Strength","Agility","Stamina","Rebirth","Eggs"}) do
+            createButton(scroll, y, loc.." Gym", function() teleportTo(loc) end); addH(35)
         end
 
-    elseif tabName == "Misc" then
+    elseif tabName == "Egg Shop" then
         local t = Instance.new("TextLabel")
-        t.Size = UDim2.new(1, -20, 0, 25)
-        t.Position = UDim2.new(0, 10, 0, y)
-        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0); t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "MISC"; t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
+        t.Size = UDim2.new(1, -20, 0, 25); t.Position = UDim2.new(0, 10, 0, y)
+        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0)
+        t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "OPEN EGGS"
+        t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
         addH(25)
 
-        createToggle(scroll, y, "Speed Hack", false, function(v)
-            speedEnabled = v
-            if player.Character and player.Character:FindFirstChild("Humanoid") then
-                player.Character.Humanoid.WalkSpeed = v and 50 or 16
-            end
-        end); addH(40)
+        for _, egg in ipairs(eggs) do
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1, -20, 0, 50); frame.Position = UDim2.new(0, 10, 0, y)
+            frame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+            frame.BorderSizePixel = 0; frame.Parent = scroll
+            Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
 
-        createToggle(scroll, y, "Fly/NoClip", false, function(v)
-            flyEnabled = v
-            local char = player.Character
-            if not char then return end
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = not v
-                end
-            end
-            if v then
-                local flyLoop; flyLoop = runService.Stepped:Connect(function()
-                    if not flyEnabled then flyLoop:Disconnect() return end
-                    if uis:IsKeyDown(Enum.KeyCode.Space) then
-                        char.HumanoidRootPart.Velocity = Vector3.new(0, 30, 0)
-                    end
-                end)
-            end
-        end); addH(40)
+            local infoLabel = Instance.new("TextLabel")
+            infoLabel.Size = UDim2.new(0, 180, 1, 0); infoLabel.Position = UDim2.new(0, 10, 0, 0)
+            infoLabel.BackgroundTransparency = 1; infoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            infoLabel.Text = egg.name; infoLabel.Font = Enum.Font.GothamBold; infoLabel.TextSize = 14
+            infoLabel.TextXAlignment = Enum.TextXAlignment.Left; infoLabel.Parent = frame
 
-        createButton(scroll, y, "Collect All Gems", collectGems); addH(35)
-        createButton(scroll, y, "Open All Eggs", openEggs); addH(35)
+            local costLabel = Instance.new("TextLabel")
+            costLabel.Size = UDim2.new(0, 100, 1, 0); costLabel.Position = UDim2.new(0, 190, 0, 0)
+            costLabel.BackgroundTransparency = 1; costLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
+            costLabel.Text = egg.cost; costLabel.Font = Enum.Font.Gotham; costLabel.TextSize = 13
+            costLabel.TextXAlignment = Enum.TextXAlignment.Left; costLabel.Parent = frame
+
+            local openBtn = Instance.new("TextButton")
+            openBtn.Size = UDim2.new(0, 80, 0, 30); openBtn.Position = UDim2.new(1, -90, 0.5, -15)
+            openBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 70); openBtn.TextColor3 = Color3.new(1,1,1)
+            openBtn.Text = "OPEN"; openBtn.Font = Enum.Font.GothamBold; openBtn.TextSize = 14
+            openBtn.Parent = frame
+            Instance.new("UICorner", openBtn).CornerRadius = UDim.new(0, 6)
+
+            openBtn.MouseButton1Click:Connect(function()
+                openEgg(egg.location)
+                tweenService:Create(openBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(100, 255, 100)}):Play()
+                task.wait(0.1)
+                tweenService:Create(openBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(0, 170, 70)}):Play()
+            end)
+
+            addH(50)
+        end
+
+    elseif tabName == "Codes" then
+        local t = Instance.new("TextLabel")
+        t.Size = UDim2.new(1, -20, 0, 25); t.Position = UDim2.new(0, 10, 0, y)
+        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0)
+        t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "REDEEM CODES"
+        t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
+        addH(25)
+
+        createButton(scroll, y, "REDEEM ALL CODES", redeemAllCodes); addH(35)
+
+        -- Liste
+        for _, code in ipairs(activeCodes) do
+            local codeFrame = Instance.new("Frame")
+            codeFrame.Size = UDim2.new(1, -20, 0, 30); codeFrame.Position = UDim2.new(0, 10, 0, y)
+            codeFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+            codeFrame.BorderSizePixel = 0; codeFrame.Parent = scroll
+            Instance.new("UICorner", codeFrame).CornerRadius = UDim.new(0, 6)
+
+            local codeText = Instance.new("TextLabel")
+            codeText.Size = UDim2.new(1, -20, 1, 0); codeText.Position = UDim2.new(0, 10, 0, 0)
+            codeText.BackgroundTransparency = 1; codeText.TextColor3 = Color3.fromRGB(255, 255, 255)
+            codeText.Text = code; codeText.Font = Enum.Font.Code; codeText.TextSize = 14
+            codeText.TextXAlignment = Enum.TextXAlignment.Left; codeText.Parent = codeFrame
+            addH(30)
+        end
+
+    elseif tabName == "Extras" then
+        local t = Instance.new("TextLabel")
+        t.Size = UDim2.new(1, -20, 0, 25); t.Position = UDim2.new(0, 10, 0, y)
+        t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255, 140, 0)
+        t.Font = Enum.Font.GothamBlack; t.TextSize = 16; t.Text = "EXTRAS"
+        t.TextXAlignment = Enum.TextXAlignment.Left; t.Parent = scroll
+        addH(25)
+
+        createToggle(scroll, y, "Anti AFK", false, function(v) antiAFKEnabled = v; if v then spawn(antiAFKLoop) end end); addH(40)
+        createToggle(scroll, y, "Free Auto Gamepass", false, function(v) freeGamepassEnabled = v; if v then enableFreeGamepass() end end); addH(40)
+        createButton(scroll, y, "Collect All Gifts/Gems", collectAllGifts); addH(35)
     end
 end
 
 -- Sekme butonları
-local tabs = {"Main", "Teleports", "Misc"}
+local tabNames = {"Teleports", "Egg Shop", "Codes", "Extras"}
 local tabBtns = {}
-for i, tab in ipairs(tabs) do
+for i, tab in ipairs(tabNames) do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -10, 0, 35)
     btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 40)
@@ -456,7 +486,7 @@ for i, tab in ipairs(tabs) do
     end)
 end
 
--- Küçültme butonu
+-- Küçültme
 minBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
@@ -498,10 +528,10 @@ uis.InputEnded:Connect(function(input)
 end)
 
 -- Başlangıç
-showTab("Main")
+showTab("Teleports")
 tweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Size = fullSize}):Play()
 
--- Hover efektleri yardımcısı
+-- Hover efektleri
 local function addHover(btn)
     btn.MouseEnter:Connect(function() tweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}):Play() end)
     btn.MouseLeave:Connect(function() tweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end)

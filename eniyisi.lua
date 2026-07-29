@@ -1,6 +1,6 @@
 -- ===================================================================
--- ULTIMATE UNIVERSAL PRO – Tüm Klasik Hileler Tek Script'te
--- Sürüm: 3.0 | Animasyonlu | Profesyonel | Her Oyunda Çalışır
+-- ULTIMATE UNIVERSAL PRO – SPIN EDITION
+-- Tüm Klasik Hileler + Ayarlanabilir Spin | Animasyonlu | Profesyonel
 -- ===================================================================
 
 local player = game.Players.LocalPlayer
@@ -9,7 +9,6 @@ local userInput = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 local players = game:GetService("Players")
-local replicatedStorage = game:GetService("ReplicatedStorage")
 
 -- ============================
 -- DEĞİŞKENLER
@@ -27,13 +26,6 @@ local noclipConnections = {}
 local godModeActive = false
 local godModeConnections = {}
 
-local espActive = false
-local espColor = Color3.fromRGB(255, 0, 0)
-local espObjects = {}
-local espConnections = {}
-
-local longNeckActive = false
-
 local aimbotActive = false
 local aimbotConnection = nil
 
@@ -46,6 +38,10 @@ local autoFarmConnection = nil
 local btoolsActive = false
 
 local teleportActive = false
+
+local spinActive = false
+local spinSpeed = 1
+local spinConnection = nil
 
 local isMinimized = false
 
@@ -226,88 +222,6 @@ local function disableGodMode()
 end
 
 -- ============================
--- ESP (Düzeltildi)
--- ============================
-local function updateESP()
-    for _, obj in ipairs(espObjects) do if obj and obj.Parent then obj:Destroy() end end
-    espObjects = {}
-    if not espActive then return end
-    for _, plr in ipairs(players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = plr.Character.HumanoidRootPart
-            local highlight = Instance.new("Highlight")
-            highlight.Parent = hrp
-            highlight.FillColor = espColor
-            highlight.FillTransparency = 0.3
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.OutlineTransparency = 0.1
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            table.insert(espObjects, highlight)
-        end
-    end
-end
-
-local function setupESPListener()
-    for _, conn in ipairs(espConnections) do conn:Disconnect() end
-    espConnections = {}
-    local conn1 = players.PlayerAdded:Connect(function() task.wait(0.5) if espActive then updateESP() end end)
-    table.insert(espConnections, conn1)
-    local conn2 = players.PlayerRemoving:Connect(function() task.wait(0.5) if espActive then updateESP() end end)
-    table.insert(espConnections, conn2)
-    local conn3 = player.CharacterAdded:Connect(function() task.wait(1) if espActive then updateESP() end end)
-    table.insert(espConnections, conn3)
-    local conn4 = runService.Heartbeat:Connect(function()
-        if espActive then
-            for _, plr in ipairs(players:GetPlayers()) do
-                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = plr.Character.HumanoidRootPart
-                    local has = false
-                    for _, obj in ipairs(espObjects) do if obj and obj.Parent == hrp then has = true break end end
-                    if not has then
-                        local highlight = Instance.new("Highlight")
-                        highlight.Parent = hrp
-                        highlight.FillColor = espColor
-                        highlight.FillTransparency = 0.3
-                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                        highlight.OutlineTransparency = 0.1
-                        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                        table.insert(espObjects, highlight)
-                    end
-                end
-            end
-        end
-    end)
-    table.insert(espConnections, conn4)
-end
-
--- ============================
--- UZUN BOYUN (LONG NECK)
--- ============================
-local function enableLongNeck()
-    longNeckActive = true
-    local char = getCharacter()
-    if char then
-        local neck = char:FindFirstChild("Head"):FindFirstChild("Neck")
-        if neck then
-            neck.Position = Vector3.new(0, 3, 0)
-            neck.MaxVelocity = 100
-        end
-    end
-end
-
-local function disableLongNeck()
-    longNeckActive = false
-    local char = getCharacter()
-    if char then
-        local neck = char:FindFirstChild("Head"):FindFirstChild("Neck")
-        if neck then
-            neck.Position = Vector3.new(0, 0, 0)
-            neck.MaxVelocity = 0
-        end
-    end
-end
-
--- ============================
 -- AIMBOT
 -- ============================
 local function enableAimbot()
@@ -356,7 +270,7 @@ local function setHitboxSize(value)
 end
 
 -- ============================
--- OTOMATİK ÇİFTLİK (Auto Farm - Basit Simülasyon)
+-- OTOMATİK ÇİFTLİK
 -- ============================
 local function enableAutoFarm()
     if autoFarmActive then return end
@@ -365,7 +279,6 @@ local function enableAutoFarm()
         if not autoFarmActive then return end
         local hrp = getHRP()
         if hrp then
-            -- Rastgele hareket ederek çiftlik simülasyonu
             hrp.CFrame = hrp.CFrame + Vector3.new(math.random(-1,1), 0, math.random(-1,1))
         end
     end)
@@ -377,7 +290,7 @@ local function disableAutoFarm()
 end
 
 -- ============================
--- BTOOLS (Infinite Tools)
+-- BTOOLS
 -- ============================
 local function enableBtools()
     btoolsActive = true
@@ -417,7 +330,7 @@ local function disableBtools()
 end
 
 -- ============================
--- TELEPORT (Tıkla Işınlanma)
+-- TELEPORT
 -- ============================
 mouse.Button1Down:Connect(function()
     if teleportActive then
@@ -427,6 +340,29 @@ mouse.Button1Down:Connect(function()
         end
     end
 end)
+
+-- ============================
+-- SPIN
+-- ============================
+local function startSpin()
+    if spinActive then return end
+    spinActive = true
+    spinConnection = runService.Heartbeat:Connect(function()
+        if not spinActive then return end
+        local hrp = getHRP()
+        if hrp then
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+        end
+    end)
+end
+
+local function stopSpin()
+    spinActive = false
+    if spinConnection then
+        spinConnection:Disconnect()
+        spinConnection = nil
+    end
+end
 
 -- ============================
 -- ANTI-AFK (Otomatik)
@@ -537,10 +473,10 @@ closeBtn.MouseButton1Click:Connect(function()
     stopFly()
     if godModeActive then disableGodMode() end
     if noclipActive then disableNoclip() end
-    if espActive then updateESP() end
     if aimbotActive then disableAimbot() end
     if autoFarmActive then disableAutoFarm() end
     if btoolsActive then disableBtools() end
+    if spinActive then stopSpin() end
     screenGui:Destroy()
 end)
 
@@ -549,7 +485,7 @@ scrollFrame.Size = UDim2.new(1, 0, 1, -40)
 scrollFrame.Position = UDim2.new(0, 0, 0, 40)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.BorderSizePixel = 0
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 780)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 720)
 scrollFrame.ScrollBarThickness = 4
 scrollFrame.Parent = mainFrame
 
@@ -680,31 +616,6 @@ local function addToggle(labelText, default, color, callback)
     return btn
 end
 
-local function addColorPicker(labelText, defaultColor, callback)
-    local y = yPos
-    yPos = yPos + 30
-    addLabel(labelText, y)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 40, 0, 24)
-    btn.Position = UDim2.new(0.85, -40, 0, y - 2)
-    btn.BackgroundColor3 = defaultColor
-    btn.Text = ""
-    btn.Parent = scrollFrame
-    local colors = {
-        Color3.fromRGB(255,0,0), Color3.fromRGB(0,255,0), Color3.fromRGB(0,0,255),
-        Color3.fromRGB(255,255,0), Color3.fromRGB(255,0,255), Color3.fromRGB(0,255,255),
-        Color3.fromRGB(255,128,0), Color3.fromRGB(128,0,255)
-    }
-    local index = 1
-    btn.MouseButton1Click:Connect(function()
-        index = index % #colors + 1
-        btn.BackgroundColor3 = colors[index]
-        callback(colors[index])
-    end)
-    callback(defaultColor)
-    return btn
-end
-
 -- ============================
 -- MENÜ ÖĞELERİ (Kategorilere Ayrılmış)
 -- ============================
@@ -734,26 +645,8 @@ addToggle("🌀 Tıkla Işınlan", false, Color3.fromRGB(255, 200, 50), function
     teleportActive = val
 end)
 
--- Kategori: Görsel
-addCategory("👁️ GÖRSEL", yPos, Color3.fromRGB(255, 200, 100))
-yPos = yPos + 30
-
-addToggle("👁️ ESP", false, Color3.fromRGB(255, 200, 50), function(val)
-    espActive = val
-    if val then setupESPListener() updateESP() else updateESP() end
-end)
-
-addColorPicker("🎨 ESP Rengi", Color3.fromRGB(255, 0, 0), function(color)
-    espColor = color
-    if espActive then updateESP() end
-end)
-
-addToggle("🦒 Uzun Boyun", false, Color3.fromRGB(200, 150, 255), function(val)
-    if val then enableLongNeck() else disableLongNeck() end
-end)
-
 -- Kategori: Avcılık
-addCategory("🎯 AVICILIK", yPos, Color3.fromRGB(255, 100, 100))
+addCategory("🎯 AVCILIK", yPos, Color3.fromRGB(255, 100, 100))
 yPos = yPos + 30
 
 addToggle("🎯 Aimbot", false, Color3.fromRGB(255, 50, 50), function(val)
@@ -774,7 +667,7 @@ addToggle("🛡️ God Mode", false, Color3.fromRGB(100, 200, 255), function(val
 end)
 
 -- Kategori: Mekanik
-addCategory("🛠️ MEKANIK", yPos, Color3.fromRGB(255, 200, 150))
+addCategory("🛠️ MEKANİK", yPos, Color3.fromRGB(255, 200, 150))
 yPos = yPos + 30
 
 addToggle("⚙️ Otomatik Çiftlik", false, Color3.fromRGB(255, 200, 150), function(val)
@@ -787,6 +680,18 @@ yPos = yPos + 30
 
 addToggle("🧰 Btools (Yık/Yap)", false, Color3.fromRGB(150, 200, 255), function(val)
     if val then enableBtools() else disableBtools() end
+end)
+
+-- Kategori: Spin
+addCategory("🌀 SPIN", yPos, Color3.fromRGB(255, 150, 255))
+yPos = yPos + 30
+
+addSlider("🌀 Spin Hızı", 0, 10, 1, Color3.fromRGB(255, 100, 200), function(val)
+    spinSpeed = val
+end)
+
+addToggle("🌀 Spin (Dön)", false, Color3.fromRGB(255, 100, 200), function(val)
+    if val then startSpin() else stopSpin() end
 end)
 
 -- ============================
@@ -847,4 +752,4 @@ tweenService:Create(notification, TweenInfo.new(3), {BackgroundTransparency = 1,
 task.wait(3)
 notification:Destroy()
 
-print("Ultimate Universal Pro çalışıyor! Tüm klasik hileler hazır.")
+print("Ultimate Universal Pro – Spin Edition çalışıyor!")

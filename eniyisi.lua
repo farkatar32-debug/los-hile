@@ -1,6 +1,6 @@
 -- ===================================================================
--- ULTIMATE UNIVERSAL PRO – SPIN EDITION
--- Tüm Klasik Hileler + Ayarlanabilir Spin | Animasyonlu | Profesyonel
+-- ULTIMATE UNIVERSAL PRO – SPIN 500 EDITION
+-- Tüm Klasik Hileler + Ayarlanabilir Spin (0-500) | Animasyonlu
 -- ===================================================================
 
 local player = game.Players.LocalPlayer
@@ -342,7 +342,7 @@ mouse.Button1Down:Connect(function()
 end)
 
 -- ============================
--- SPIN
+-- SPIN (Maksimum 500)
 -- ============================
 local function startSpin()
     if spinActive then return end
@@ -682,11 +682,11 @@ addToggle("🧰 Btools (Yık/Yap)", false, Color3.fromRGB(150, 200, 255), functi
     if val then enableBtools() else disableBtools() end
 end)
 
--- Kategori: Spin
-addCategory("🌀 SPIN", yPos, Color3.fromRGB(255, 150, 255))
+-- Kategori: Spin (Maksimum 500)
+addCategory("🌀 SPIN (0-500)", yPos, Color3.fromRGB(255, 150, 255))
 yPos = yPos + 30
 
-addSlider("🌀 Spin Hızı", 0, 10, 1, Color3.fromRGB(255, 100, 200), function(val)
+addSlider("🌀 Spin Hızı", 0, 500, 1, Color3.fromRGB(255, 100, 200), function(val)
     spinSpeed = val
 end)
 
@@ -752,4 +752,4 @@ tweenService:Create(notification, TweenInfo.new(3), {BackgroundTransparency = 1,
 task.wait(3)
 notification:Destroy()
 
-print("Ultimate Universal Pro – Spin Edition çalışıyor!")
+print("Ultimate Universal Pro – Spin 500 Edition çalışıyor!")
